@@ -1,0 +1,87 @@
+version: "3.8"
+
+services:
+  api:
+    build: .
+    container_name: fastapi_image_processor
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    environment:
+#      - CELERY_BROKER_URL=redis://redis:6379/0
+#      - CELERY_BACKEND_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=pyamqp://guest@rabbitmq:5672//
+      - CELERY_BACKEND_URL=rpc://
+      - DATABASE_URL=postgresql://postgres:password@db:5432/image_db
+    command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    volumes:
+      - .:/app
+
+  db:
+    image: postgres:16
+    container_name: image_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: image_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      retries: 5
+      start_period: 5s
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      retries: 5
+      start_period: 5s
+
+  rabbitmq:
+    image: rabbitmq:3.8-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"  # AMQP protocol port
+      - "15672:15672"  # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  celery_worker:
+    build: .
+    container_name: celery_worker
+    restart: always
+    command: >
+      sh -c "celery -A app.celery_worker.celery_app worker --loglevel=info"
+    volumes:
+      - .:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    environment:
+#      - CELERY_BROKER_URL=redis://redis:6379/0
+#      - CELERY_BACKEND_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=pyamqp://guest@rabbitmq:5672//
+      - CELERY_BACKEND_URL=rpc://
+      - DATABASE_URL=postgresql://postgres:password@db:5432/image_db
+      - PYTHONPATH=/app
+
+volumes:
+  pg_data:

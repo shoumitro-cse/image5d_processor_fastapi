@@ -1,0 +1,199 @@
+# shell cmd
+tree -L 2 --dirsfirst
+
+📂 Folder Structure
+image_processor/
+│── app/
+│   ├── api/
+│   │   ├── routes/
+│   │   │   ├── upload.py
+│   │   │   ├── metadata.py
+│   │   │   ├── slice.py
+│   │   │   ├── analyze.py
+│   │   │   ├── statistics.py
+│   │   │   ├── __init__.py
+│   ├── core/
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── __init__.py
+│   ├── services/
+│   │   ├── image_processor.py
+│   │   ├── storage.py
+│   │   ├── __init__.py
+│   ├── models/
+│   │   ├── image.py
+│   │   ├── __init__.py
+│   ├── main.py
+│── data/
+│   ├── uploads/
+│   ├── processed/
+│── tests/
+│   ├── test_api.py
+│   ├── test_image_processor.py
+│── notebooks/
+│   ├── image_analysis_demo.ipynb
+│── requirements.txt
+│── README.md
+│── .env
+│── Dockerfile
+│── docker-compose.yml
+
+
+mkdir -p image_processor/{app/api/routes,app/core,app/services,app/models,data/uploads,data/processed,tests,notebooks}
+
+touch image_processor/app/api/routes/{upload.py,metadata.py,slice.py,analyze.py,statistics.py,__init__.py}
+touch image_processor/app/core/{config.py,database.py,__init__.py}
+touch image_processor/app/services/{image_processor.py,storage.py,__init__.py}
+touch image_processor/app/models/{image.py,__init__.py}
+touch image_processor/app/main.py
+touch image_processor/tests/{test_api.py,test_image_processor.py}
+touch image_processor/notebooks/image_analysis_demo.ipynb
+touch image_processor/{requirements.txt,README.md,.env,Dockerfile,docker-compose.yml}
+
+
+pip install fastapi[all] uvicorn pillow numpy opencv-python-headless tifffile pydantic sqlalchemy alembic celery redis
+uvicorn app.main:app --reload
+
+
+deactivate  # If active      
+source venv/bin/activate  # macOS/Linux
+PYTHONPATH=$(pwd) uvicorn app.main:app --reload
+
+http://127.0.0.1:8000/docs
+
+#Run the following command to initialize Alembic in your project:
+alembic init alembic
+
+This creates a directory structure like:
+/alembic
+  ├── versions/  # Stores migration files
+  ├── env.py  # Config file for running migrations
+  ├── script.py.mako  # Template for generating migrations
+alembic.ini  # Main Alembic configuration file
+
+# Modify alembic.ini
+sqlalchemy.url = sqlite:///./test.db  # For SQLite
+# sqlalchemy.url = postgresql://user:password@localhost/dbname
+
+
+# Modify env.py
+from app.core.database import Base
+from app.models import *
+target_metadata = Base.metadata
+
+# This generates a migration file inside alembic/versions/ with the detected schema.
+alembic revision --autogenerate -m "Initial migration"
+
+# This applies the migration to create tables in the database.
+alembic upgrade head
+
+
+# full reset
+rm test.db
+rm -rf alembic/versions/*
+alembic revision --autogenerate -m "Initial migration"
+alembic upgrade head
+
+
+# fake migration
+
+# fixed: revision id
+sqlite3 test.db
+SELECT * FROM alembic_version;
+DELETE FROM alembic_version WHERE version_num = '9fc33d5624f8';
+UPDATE alembic_version SET version_num = '<latest_valid_revision>';
+.exit
+
+alembic revision --autogenerate -m "Initial migration"
+alembic stamp head # This will mark the latest migration as applied, effectively making it "fake" by skipping the actual database changes.
+alembic stamp <revision_id> # Replace <revision_id> with the revision identifier you want to mark as applied (you can find it in the migration file name or in the Alembic history).
+alembic history --verbose
+
+fastapi_project/
+├── app/
+│   ├── __init__.py
+│   ├── main.py                 # Entry point: creates the FastAPI app and includes routers
+│   │
+│   ├── api/                    # API layer: endpoints, dependencies, and versioning
+│   │   ├── __init__.py
+│   │   ├── deps.py             # Global dependencies (e.g., authentication)
+│   │   ├── v1/                 # Version 1 of API
+│   │   │   ├── __init__.py
+│   │   │   ├── endpoints/      # Route definitions
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── items.py
+│   │   │   │   ├── users.py
+│   │   │   │   ├── images.py
+│   │   │   │   ├── analytics.py
+│   │   │   ├── routers.py      # Registers all routers in one place
+│   │
+│   ├── core/                   # Core configuration and utilities
+│   │   ├── __init__.py
+│   │   ├── config.py           # App settings using Pydantic BaseSettings
+│   │   ├── database.py         # Database connection (SQLAlchemy/PostgreSQL)
+│   │   ├── celery_config.py    # Celery configuration
+│   │
+│   ├── schemas/                # Centralized Pydantic schemas (decoupled from API versions)
+│   │   ├── __init__.py
+│   │   ├── item_schema.py
+│   │   ├── user_schema.py
+│   │   ├── image_schema.py
+│   │   ├── analytics_schema.py
+│   │
+│   ├── models/                 # ORM models (SQLAlchemy models)
+│   │   ├── __init__.py
+│   │   ├── item_model.py
+│   │   ├── user_model.py
+│   │   ├── image_model.py
+│   │   ├── analytics_model.py
+│   │
+│   ├── repositories/           # Data access layer (CRUD operations)
+│   │   ├── __init__.py
+│   │   ├── item_repository.py
+│   │   ├── user_repository.py
+│   │   ├── image_repository.py
+│   │   ├── analytics_repository.py
+│   │
+│   ├── services/               # Business logic layer
+│   │   ├── __init__.py
+│   │   ├── item_service.py
+│   │   ├── user_service.py
+│   │   ├── image_service.py
+│   │   ├── analytics_service.py
+│   │
+│   ├── tasks/                  # Background tasks (Celery tasks)
+│   │   ├── __init__.py
+│   │   ├── item_task.py
+│   │   ├── user_task.py
+│   │   ├── image_task.py
+│   │   ├── analytics_task.py
+│   │
+│   ├── workers/                # Celery worker entry points
+│   │   ├── __init__.py
+│   │   ├── worker.py
+│   │
+│   ├── utils/                   # Helper functions (e.g., logging, common utilities)
+│   │   ├── __init__.py
+│   │   ├── logger.py
+│   │   ├── file_handler.py
+│   │
+│   ├── middleware/               # Custom middleware (e.g., logging, error handling)
+│   │   ├── __init__.py
+│   │   ├── error_handler.py
+│   │   ├── logging_middleware.py
+│
+│── notebooks/
+│   ├── image_analysis_notebook.ipynb
+│   │
+├── tests/                        # Automated tests (unit & integration tests)
+│   ├── __init__.py
+│   ├── test_items.py
+│   ├── test_users.py
+│   ├── test_images.py
+│   ├── test_analytics.py
+│
+│── docker-compose.yml      # Docker Setup (FastAPI, Redis, Celery)
+│── Dockerfile              # FastAPI Docker Image
+│── requirements.txt        # Dependencies
+│── .env                    # Environment Variables
+│── README.md               # Documentation
