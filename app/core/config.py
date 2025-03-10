@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 # Explicitly specify the path to .env
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 env_path = os.path.join(BASE_DIR, ".env")
+# print("env_path: {}".format(env_path))
 
 # Load environment variables
 load_dotenv(env_path)
